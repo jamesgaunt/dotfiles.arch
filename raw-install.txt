@@ -1,0 +1,223 @@
+# Raw ArchLinux Installation Notes
+# This is for a manual installation. Can skip most of this using archinstall script.
+
+#========================================================================================================================================
+# ISO / Installer Setup
+#========================================================================================================================================
+
+# Connect wifi
+iwctl
+> station list
+> station wlan0 get-networks
+> station <wlan> connect <wifi-network>
+> exit
+
+# Network check
+ping 8.8.8.8
+ip addr show
+
+# SSH to the installer if desired (better UX, copy paste etc)
+passwd                                                              # set root password for installer (not for the target installation)
+
+# On client machine (consider foot terminal to avoid xterm issues)
+ssh root@<ip>                                                                                       # SSH into archiso
+sudo nano /etc/fstab                                                                                # test xterm
+
+#========================================================================================================================================
+# Disk Partitioning
+#========================================================================================================================================
+
+lsblk                                                               # List block devices (e.g. disks). SDA = HDD (or USB), NVME = SSD
+
+# Create 2 partitions (efi [1G f32], root [.. btrfs/ext4])
+
+fdisk /dev/<nvme0n1>
+> g     -- create partition table
+> n     -- create new partition
+> +1G   -- 1 GiB size
+> p     -- print partition layout
+> w     -- write (everything is destroyed at this point)
+
+# Format the partitions
+
+# eft partition
+mkfs.fat -F32 /dev/nvme0n1p1
+
+# root partition
+mkfs.btrfs /dev/nvme0n1p2
+OR
+mkfs.ext4 /dev/nvme0n1p2
+
+#========================================================================================================================================
+# Mounting btrfs
+#========================================================================================================================================
+
+# create subvolumes from the top level
+mount /dev/nvme0n1p2 /mnt
+btrfs subvolume create /mnt/@
+btrfs subvolume create /mnt/@home
+btrfs subvolume create /mnt/@snapshots
+btrfs subvolume create /mnt/@var_log
+btrfs subvolume create /mnt/@var_cache
+btrfs subvolume create /mnt/@var_lib_docker
+umount /mnt
+
+# remount everything with compression (consider noatime vs relatime)
+opts="noatime,compress=zstd,discard=async"
+
+mount -o $opts,subvol=@ /dev/nvme0n1p2 /mnt
+mkdir -p /mnt/{home,.snapshots,var/log,var/cache,var/lib/docker,boot,efi}
+
+mount -o $opts,subvol=@home             /dev/nvme0n1p2    /mnt/home
+mount -o $opts,subvol=@snapshots        /dev/nvme0n1p2    /mnt/.snapshots
+mount -o $opts,subvol=@var_log          /dev/nvme0n1p2    /mnt/var/log
+mount -o $opts,subvol=@var_cache        /dev/nvme0n1p2    /mnt/var/cache
+mount -o $opts,subvol=@var_lib_docker   /dev/nvme0n1p2    /mnt/var/lib/docker
+
+#========================================================================================================================================
+# Mounting ext4
+#========================================================================================================================================
+
+mount /dev/nvme0n1p2 /mnt
+
+#========================================================================================================================================
+# Mounting f32/efi
+#========================================================================================================================================
+
+mount /dev/nvme0n1p1 /mnt/efi
+
+#========================================================================================================================================
+# Base Packages
+#========================================================================================================================================
+
+# install base packages (also sets up /mnt/etc)
+pacstrap -i /mnt base
+
+# generate fstab based on current mounts
+genfstab -U /mnt >> /mnt/etc/fstab
+
+# change to the new root, at this point work is happening on the new drives
+arch-chroot /mnt
+
+#========================================================================================================================================
+# Preparing for First Boot
+#========================================================================================================================================
+
+# full system sync and update
+pacman -Syu
+
+# install core packages (grub centric)
+pacman -S base-devel dosfstools grub efibootmgr mtools nano networkmanager os-prober sudo openssh
+
+# install linux (because its necessary) - also install the headers (for compiling new drivers - e.g. nvidia)
+pacman -S linux linux-headers linux-firmware
+
+# some ergonomics
+pacman -S terminus-font
+
+# sanity check existence of initramfs - should be 30~60MB
+ls -lh /boot/initramfs-linux.img
+
+# if issues arise fix them and rebuild initramfs
+mkinitcpio -P
+
+# enable the ssh service on boot so we can continue to ssh in
+systemctl enable sshd
+
+# graphics drivers (gonna depend)
+pacman -S mesa vulkan-intel intel-media-driver              # Pure Intel
+(see TheBeast bootstrap.txt for nvidia proprietary drivers)
+
+# install grub (want a clean /etc/defaut/grub)
+grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB --recheck
+grub-mkconfig -o /boot/grub/grub.cfg
+
+# enable services
+systemctl enable NetworkManager
+
+# locale: console keymap
+sudo nano /etc/vconsole.conf  [KEYMAP=uk]
+sudo localectl set-keymap uk
+sudo localectl set-x11-keymap gb
+
+# locale: timezone + clock
+timedatectl set-timezone Europe/London
+timedatectl set-ntp true
+
+# locale: generate THEN select
+nano /etc/locale.gen                                        # Uncomment the locale
+locale-gen
+localectl set-locale LANG=en_GB.UTF-8
+
+# verify
+timedatectl
+localectl
+locale
+
+# user setup
+passwd                                                      # set root password
+useradd -m -g users -G wheel james                          # create user, join groups users + wheel (sudo)
+passwd james                                                # set users password
+cat /etc/passwd                                             # verify user is setup
+
+# allow wheel members to sudo
+EDITOR=nano visudo
+uncomment line # %wheel ALL=(ALL:ALL) ALL
+
+# first boot
+reboot
+
+#========================================================================================================================================
+# First Boot
+#========================================================================================================================================
+
+systemctl status NetworkManager
+nmtui
+sudo pacman -P terminus-font
+setfont ter-132n
+
+sudo pacman -S reflector
+sudo reflector --country "United Kingdom" --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+
+#========================================================================================================================================
+# Snapper
+#========================================================================================================================================
+
+sudo pacman -S snapper snap-pac grub-btrfs
+
+Now the central footgun, which is why doing this by hand matters. When you run snapper create-config, snapper insists on creating its own .snapshots subvolume at the path you point it at. But you already have @snapshots and it's already mounted at /.snapshots via fstab. If snapper finds something already mounted there, create-config fails. So the dance is: unmount your @snapshots, get it out of the way, let snapper create its config (and its own .snapshots subvol), then delete snapper's version and put yours back. Step by step:
+
+# unmount
+sudo umount /.snapshots
+sudo rm -r /.snapshots
+
+# create snapper config for root
+sudo snapper -c root create-config /
+
+# delete snapper's auto-created subvolume and restore yours
+sudo btrfs subvolume delete /.snapshots
+sudo mkdir /.snapshots
+sudo mount -a
+
+# fix permissions
+sudo chmod 750 /.snapshots
+
+# now configure which subvolumes actually get snapshot
+sudo nano /etc/snapper/configs/root
+-- consider TIMELINE_CREATE="no" and just rely on snap-pac to avoid bloat
+
+# enable times (ignore timeline if not using timeline)
+sudo systemctl enable --now snapper-timeline.timer
+sudo systemctl enable --now snapper-cleanup.timer
+
+# test
+sudo snapper -c root create --description "test snapshot"
+sudo snapper -c root list                    # see your test snapshot
+
+# wireup grub-btrfs
+sudo systemctl enable --now grub-btrfsd
+sudo grub-mkconfig -o /boot/grub/grub.cfg
+
+#========================================================================================================================================
+# Welcome to Arch!
+#========================================================================================================================================

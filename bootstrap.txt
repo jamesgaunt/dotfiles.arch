@@ -1,0 +1,307 @@
+
+#================================================================================
+# ON FIRST BOOT
+#================================================================================
+
+# Ensure network
+ping 8.8.8.8
+systemctl status NetworkManager
+nmtui
+
+# Setup terminus font
+sudo pacman -S terminus-font
+setfont ter-132n
+
+# Prerequisites (opinionated)
+sudo pacman -S git nano hyprland pipewire zed ghostty firefox uwsm nautilus waybar rofi-wayland awww openssh
+
+# (maybe) SMB (not automatically installed by thunar)
+sudo pacman -S gvfs gvfs-smb smbclient
+sudo pacman -S avahi nss-mdns
+sudo systemctl enable --now avahi-daemon
+
+# some hyprland config
+local terminal    = "ghostty"
+local fileManager = "thunar"
+local menu        = "rofi -show drun"
+
+# Test launch hyprland with UWSM
+uwsm start hyprland-uwsm.desktop
+uwsm app -- <app>
+
+#================================================================================
+# Build proprietary NVIDIA Drivers
+#================================================================================
+
+sudo pacman -S linux-headers
+sudo pacman -S nvidia-open-dkms nvidia-utils vulkan-icd-loader egl-wayland
+
+# Verify the drivers built
+dkms status
+
+# Add modules to mkinitcpio
+/etc/mkinitcpio.conf
+sudo find / -name "mkinitcpio.conf"
+MODULE = (... nvidia nvidia_modeset nvidia_uvm nvidia_drm)
+
+# Add DRM modeset to commandline
+Add nvidia_drm.modeset=1 to one of these locations depending on how the system boots
+> GRUB → /etc/default/grub (the GRUB_CMDLINE_LINUX_DEFAULT line) → grub-mkconfig -o /boot/grub/grub.cfg
+> systemd-boot, traditional → options line in /boot/loader/entries/*.conf
+> systemd-boot, UKI → /etc/kernel/cmdline →
+
+# Rebuild initramfs
+sudo mkinitcpio -P
+
+#================================================================================
+# Hyprland config
+#================================================================================
+
+# Set kb_layout = "gb"
+
+# Autostart
+hl.on("hyprland.start", function()
+    hl.exec_cmd("uwsm app -- waybar")
+    hl.exec_cmd("uwsm app -- hyprpaper")
+end)
+
+# Fullscreen keybind
+hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
+
+# 4 monitor setup
+hl.monitor({ output = "DP-1", mode = "preferred", position = "0x0",    scale = 1.5 })
+hl.monitor({ output = "DP-2", mode = "preferred", position = "2560x0", scale = 1.5 })
+hl.monitor({ output = "DP-3", mode = "preferred", position = "5120x0", scale = 1.5 })
+hl.monitor({ output = "HDMI-A-1", mode = "preferred", position = "2120x-1440", scale = 1 })
+
+# Move window with mainMod + SHIFT + arrow keys
+hl.bind(mainMod .. " + SHIFT + left", hl.dsp.window.move({ direction = "l" }))
+hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.move({ direction = "r" }))
+hl.bind(mainMod .. " + SHIFT + up", hl.dsp.window.move({ direction = "u" }))
+hl.bind(mainMod .. " + SHIFT + down", hl.dsp.window.move({ direction = "d" }))
+
+# Hyprpaper.conf
+wallpaper {
+    monitor =
+    path = ~/Pictures/Wallpapers/0143.jpg
+    fit_mode = cover
+}
+
+# Optimisation hints, may not be neccessary, consider adding if issues arise
+hl.env("LIBVA_DRIVER_NAME", "nvidia")
+hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+hl.env("NVD_BACKEND", "direct")
+hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
+
+# Hyprpolkitagent - ui for requesting elevated permissions
+sudo pacman -S hyprpolkitagent
+hl.exec_cmd("systemctl --user start hyprpolkitagent")
+
+#================================================================================
+# Snapper
+#================================================================================
+
+sudo pacman -S snapper snap-pac
+sudo snapper -c root create-config /
+# sudo snapper -c home create-config /home --> probably not
+# sudo snapper -c home delete-config
+
+# enable timer/cleanup
+sudo systemctl enable --now snapper-timeline.timer
+sudo systemctl enable --now snapper-cleanup.timer
+
+snapper list                            # see snapshots (auto ones are tagged pre/post pacman)
+snapper -c root create -d "before X"    # manual snapshot before something risky
+
+sudo btrfs subvolume list /
+sudo btrfs filesystem show
+
+#================================================================================
+# Pacman/yay
+#================================================================================
+
+# Install/Build yay
+sudo pacman -S --needed git base-devel
+git clone https://aur.archlinux.org/yay.git
+cd yay
+makepkg -si
+cd ..
+
+yay -Sc                 # clean yay's cache (prompts you)
+yay -S google-chrome    # Always read PKGBUILD
+
+#================================================================================
+# Kitty config
+#================================================================================
+
+map ctrl+c        copy_to_clipboard
+map ctrl+v        paste_from_clipboard
+map ctrl+shift+c  send_text all \x03      # \x03 = the SIGINT control code
+map ctrl+shift+v  paste_from_clipboard
+
+#================================================================================
+# Git SSH Key
+#================================================================================
+
+sudo pacman -S ssh-keygen
+
+# generate a key (if you don't have one):
+ssh-keygen -t ed25519 -C "james.gaunt@webfuel.com"
+# press enter for default location, optionally set a passphrase
+
+# start the agent and add the key:
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+
+# copy the PUBLIC key:
+cat ~/.ssh/id_ed25519.pub
+
+# Add to github Settings -> SSH and GPG Keys
+ssh -T git@github.com -> "Hi <username>..."
+
+# Use SSH form for git access
+git clone git@github.com:USERNAME/REPO.git
+
+#================================================================================
+# Docker
+#================================================================================
+
+# install docker
+sudo pacman -S docker docker-compose
+
+# enable  docker daemon
+sudo systemctl enable --now docker.service
+
+# assign user to docker group
+sudo usermod -aG docker $USER
+
+# restart
+
+# test permissions
+docker run hello-world
+
+# stop docker so nothing's using the directory
+sudo systemctl stop docker docker.socket
+
+# remove the existing (near-empty) directory
+sudo rm -rf /var/lib/docker
+
+# create a btrfs subvolume in its place
+sudo btrfs subvolume create /var/lib/docker
+
+# restart docker
+sudo systemctl start docker
+
+#================================================================================
+# .net/Rider
+#================================================================================
+
+yay -S dotnet-sdk-bin aspnet-runtime-bin --> AUR CHECK
+sudo dotnet workload update
+
+dotnet tool install --global aspire.cli
+
+# flatpak
+
+sudo pacman -S flatpak
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+flatpak install flathub com.jetbrains.Rider
+
+Main Menu > Help > Edit Custom VM Options (use Wayland)
+-Dawt.toolkit.name=WLToolkit
+
+Disable Rider auto-restore — Ctrl+Shift+A → search "restore" → uncheck "Restore packages automatically" and associated settings.
+
+#================================================================================
+# Steam
+#================================================================================
+
+# Enable Pacman multilib
+Uncomment in /etc/pacman.conf
+[multilib]
+Include = /etc/pacman.d/mirrorlist
+
+# refresh package database
+sudo pacman -Sy
+
+# steam
+sudo pacman -S steam lib32-nvidia-utils lib32-vulkan-icd-loader
+
+# gamescope
+sudo pacman -S gamescope
+Steam launch: gamescope -W 3840 -H 2160 -r 144 --adaptive-sync -f -- %command%
+
+# hyprland rule to open on a specific workspace
+hyprctl clients --> find the class name of the app
+hl.window_rule({
+    match = { class = "steam_app_526870" },
+    workspace = "7",
+})
+
+#================================================================================
+# Theming
+#================================================================================
+
+Catppuccin -> has configs for lots of common apps
+
+#================================================================================
+# Libra Office
+#================================================================================
+
+sudo pacman -S libreoffice-still -> stable version (or use -fresh)
+
+# setup file associations (because nothing is ever simple)
+sudo pacman -S archlinux-xdg-menu
+sudo ln -sf /etc/xdg/menus/arch-applications.menu /etc/xdg/menus/applications.menu
+rm -f ~/.cache/ksycoca6_* && kbuildsycoca6 --noincremental
+
+#================================================================================
+# Synology Mount
+#================================================================================
+
+sudo pacman -S cifs-utils
+
+# /etc/samba/credentials/nas
+sudo mkdir -p /etc/samba/credentials
+sudo nano /etc/samba/credentials/nas
+| username=youruser
+| password=yourpass
+sudo chmod 600 /etc/samba/credentials/nas
+
+sudo mkdir -p /mnt/volume0
+sudo mkdir -p /mnt/volume1
+
+# Sweep for IP
+sudo pacman -S nmap
+nmap -sn 192.168.1.0/24
+
+# Add mount to fstab
+sudo nano /etc/fstab
+//192.168.x.x/sharename  /mnt/volume0  cifs  _netdev,nofail,x-systemd.automount,credentials=/etc/samba/credentials/nas,uid=1000,gid=1000,file_mode=0664,dir_mode=0775,vers=3.1.1  0 0
+//192.168.x.x/sharename  /mnt/volume1  cifs  _netdev,nofail,x-systemd.automount,credentials=/etc/samba/credentials/nas,uid=1000,gid=1000,file_mode=0664,dir_mode=0775,vers=3.1.1  0 0
+
+# Remount
+sudo systemctl daemon-reload
+sudo mount /mnt/volume0
+sudo mount /mnt/volume1
+
+#================================================================================
+# Ghossty
+#================================================================================
+
+sudo pacman -S ttf-jetbrains-mono-nerd
+fc-cache -fv
+
+#================================================================================
+# stow
+#================================================================================
+
+sudo pacman -S stow
+
+#================================================================================
+# fish
+#================================================================================
+
+sudo pacman -S fish
+sudo nano /etc/shells
