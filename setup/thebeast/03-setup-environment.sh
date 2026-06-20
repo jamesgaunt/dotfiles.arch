@@ -56,6 +56,9 @@ setup_pacman() {
 
     # refresh against the new mirrorlist
     sudo pacman -Syu --noconfirm
+
+    # claim the jack provider before anything pulls in jack2
+    sudo pacman -S --needed --noconfirm pipewire-jack
 }
 
 install_tools() {
@@ -88,7 +91,7 @@ install_desktop() {
 
 stow_dotfiles() {
     display_header "Stowing Dotfiles"
-    local pkgs=(git fish hyprland ghostty waybar rofi wallpapers)
+    local pkgs=(git fish hyprland ghostty waybar rofi wallpapers zed)
     for pkg in "${pkgs[@]}"; do
         stow -d "$HOME/dotfiles" -t "$HOME" "$pkg"
     done
@@ -194,6 +197,14 @@ install_sddm() {
     sudo systemctl enable sddm.service
 }
 
+set_shell() {
+    display_header "Setting fish as default shell"
+    local fish_path
+    fish_path=$(command -v fish)
+    [[ -n "$fish_path" ]] || { echo "fish not found" >&2; return 1; }
+    sudo usermod -s "$fish_path" "$USER"
+}
+
 # Main
 
 require_home_dir
@@ -208,6 +219,8 @@ stow_dotfiles
 install_pipewire # install before desktop so pipeware-jack wins over jack2
 install_desktop
 install_sddm
+
+set_shell
 
 install_yay
 install_steam
