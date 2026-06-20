@@ -92,7 +92,7 @@ install_desktop() {
         ghostty fish foot grim slurp wl-clipboard \
         hypridle cliphist xdg-utils hyprsunset \
         xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
-        noto-fonts noto-fonts-emoji
+        noto-fonts noto-fonts-emoji thunderbird
 }
 
 stow_dotfiles() {
@@ -187,6 +187,24 @@ install_docker () {
 
     # assign user to docker group (restart required)
     sudo usermod -aG docker "$USER"
+}
+
+install_vm () {
+    display_header "Installing VM host (KVM/QEMU + libvirt)"
+
+    # qemu-desktop: hypervisor; dnsmasq: default NAT net; edk2-ovmf: UEFI guests;
+    # swtpm: TPM for Win11 guests; virt-manager/virt-viewer: GUI + console.
+    sudo pacman -S --noconfirm --needed \
+        qemu-desktop libvirt virt-manager virt-viewer \
+        dnsmasq edk2-ovmf swtpm
+
+    sudo systemctl enable --now libvirtd.service
+
+    # let the user manage VMs without root (re-login required)
+    sudo usermod -aG libvirt "$USER"
+
+    # autostart libvirt's default NAT network
+    sudo virsh net-autostart default
 }
 
 install_dotnet () {
@@ -300,6 +318,7 @@ install_yay
 install_steam
 install_libreoffice
 install_docker
+install_vm
 install_dotnet
 install_rider
 
