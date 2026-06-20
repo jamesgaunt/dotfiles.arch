@@ -20,10 +20,6 @@ hl.monitor({ output = "DP-2", mode = "preferred", position = "2560x0", scale = 1
 hl.monitor({ output = "DP-3", mode = "preferred", position = "5120x0", scale = 1.5 })
 hl.monitor({ output = "HDMI-A-1", mode = "preferred", position = "2120x-1440", scale = 1 })
 
-hl.window_rule({ match = { class = "jetbrains-toolbox" }, float = true })
-hl.window_rule({ match = { class = "jetbrains-toolbox" }, size = "800 600" })
-hl.window_rule({ match = { class = "jetbrains-toolbox" }, center = true })
-
 ---------------------
 ---- MY PROGRAMS ----
 ---------------------
@@ -261,6 +257,9 @@ local mainMod = "SUPER" -- Sets "Windows" key as main modifier
 hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
 local closeWindowBind = hl.bind(mainMod .. " + C", hl.dsp.window.close())
 -- closeWindowBind:set_enabled(false)
+-- Rescue an off-screen floating window (e.g. a JetBrains dialog that spawned at
+-- negative coords): focus it, then SUPER+SHIFT+C centers it on the current monitor.
+hl.bind(mainMod .. " + SHIFT + C", hl.dsp.window.center())
 hl.bind(mainMod .. " + M",
     hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
 

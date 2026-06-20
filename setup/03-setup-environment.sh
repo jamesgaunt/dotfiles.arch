@@ -208,6 +208,38 @@ install_rider () {
 
     flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     flatpak install --user -y flathub com.jetbrains.Rider
+
+    enable_rider_wayland
+}
+
+# Force Rider's JBR onto the native Wayland toolkit instead of XWayland, which
+# fixes blurry text under fractional scaling. This user vmoptions file *expands*
+# the bundled defaults, so we only add the one line. The config dir is pinned to
+# the major.minor version and isn't created until first run, so derive it from
+# the installed flatpak version (e.g. 2026.1.2 -> Rider2026.1).
+enable_rider_wayland() {
+    display_header "Enabling native Wayland for Rider"
+    local line='-Dawt.toolkit.name=WLToolkit'
+    local base="$HOME/.var/app/com.jetbrains.Rider/config/JetBrains"
+
+    local dir
+    dir=$(ls -d "$base"/Rider*/ 2>/dev/null | head -1)
+    if [[ -z "$dir" ]]; then
+        local ver mm
+        ver=$(flatpak info com.jetbrains.Rider 2>/dev/null | awk -F': *' '/Version:/{print $2}')
+        mm=${ver%.*}   # 2026.1.2 -> 2026.1
+        [[ -n "$mm" ]] || { echo "Could not determine Rider version; skipping Wayland tweak." >&2; return 0; }
+        dir="$base/Rider$mm/"
+        mkdir -p "$dir"
+    fi
+
+    local file="${dir}rider64.vmoptions"
+    if [[ -f "$file" ]] && grep -qxF "$line" "$file"; then
+        echo "Wayland toolkit option already set in $file"
+        return 0
+    fi
+    printf '%s\n' "$line" >> "$file"
+    echo "Added '$line' to $file"
 }
 
 install_sddm() {
@@ -224,6 +256,27 @@ set_shell() {
     sudo usermod -s "$fish_path" "$USER"
 }
 
+configure_claude() {
+    display_header "Seeding Claude Code settings"
+    # Not stowed on purpose: Claude Code rewrites this file (theme, permissions,
+    # accepted-dialog flags), so a symlink into the repo would churn constantly.
+    # Seed the baseline once; never clobber a config you've since customised.
+    local file="$HOME/.claude/settings.json"
+    if [[ -f "$file" ]]; then
+        echo "$file already exists, leaving it."
+        return 0
+    fi
+    mkdir -p "$HOME/.claude"
+    cat > "$file" <<'EOF'
+{
+  "theme": "dark",
+  "permissions": {
+    "allow": ["Read", "Edit", "Write", "Bash"]
+  }
+}
+EOF
+}
+
 # Main
 
 require_home_dir
@@ -234,6 +287,7 @@ install_tools
 
 clone_dotfiles
 stow_dotfiles
+configure_claude
 
 install_pipewire # install before desktop so pipeware-jack wins over jack2
 install_desktop
