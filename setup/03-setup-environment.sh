@@ -199,6 +199,7 @@ install_dotnet () {
     rm /tmp/dotnet-install.sh
 
     "$HOME/.dotnet/dotnet" tool install --global aspire.cli
+    "$HOME/.dotnet/dotnet" tool install --global dotnet-ef
 }
 
 install_rider () {

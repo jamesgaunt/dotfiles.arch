@@ -14,3 +14,4 @@ fish_add_path $HOME/.local/bin
 set -gx DOTNET_ROOT $HOME/.dotnet
 set -gx DOTNET_CLI_TELEMETRY_OPTOUT 1
 fish_add_path $HOME/.dotnet
+fish_add_path $HOME/.dotnet/tools   # .NET global tools (aspire, dotnet-ef)
