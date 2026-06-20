@@ -6,6 +6,8 @@ if type -q zoxide
     zoxide init fish | source
 end
 
+# add .local/bin to the $PATH
+test -d $HOME/.local/bin; or mkdir -p $HOME/.local/bin
 fish_add_path $HOME/.local/bin
 
 # .net setup

@@ -37,6 +37,9 @@ display_header() {
 fix_bootctl() {
     display_header "Fixing bootctl so it works with systemd-boot"
 
+    # Re-run from the booted system (not redundant with 02): some VMs can't
+    # write UEFI boot vars from within the chroot, so bootctl install in 02
+    # leaves no boot entry. Running it here, post-boot, registers it properly.
     sudo bootctl install
 }
 
@@ -92,7 +95,12 @@ install_desktop() {
 
 stow_dotfiles() {
     display_header "Stowing Dotfiles"
-    local pkgs=(git fish hyprland ghostty waybar rofi wallpapers zed)
+    # Pre-create ~/Pictures as a real dir so stow folds one level deeper:
+    # only ~/Pictures/Wallpapers gets symlinked, leaving ~/Pictures itself
+    # writable (e.g. for screenshots) instead of pointing into the repo.
+    mkdir -p "$HOME/Pictures"
+
+    local pkgs=(git fish hyprland ghostty waybar rofi wallpapers zed uwsm)
     for pkg in "${pkgs[@]}"; do
         stow -d "$HOME/dotfiles" -t "$HOME" "$pkg"
     done
@@ -111,6 +119,14 @@ install_pipewire () {
 
 install_snapper() {
     display_header "Installing Snapper"
+
+    # Idempotency guard: the subvolume dance below (umount/rm /.snapshots,
+    # create-config) is destructive and fails on a second run. Skip if the
+    # root config already exists.
+    if [[ -f /etc/snapper/configs/root ]]; then
+        echo "Snapper root config already present, skipping."
+        return 0
+    fi
 
     sudo pacman -S --needed --noconfirm \
         snapper snap-pac

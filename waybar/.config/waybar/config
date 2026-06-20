@@ -48,9 +48,8 @@
     "format-alt": "{ifname}: {ipaddr}/{cidr}",
   },
   "wireplumber": {
-	"format": "{volume}% ",
-	"format-muted": "-- ",
-	"on-click": "helvum"
+  	"format": "{volume}% ",
+  	"format-muted": "-- ",
   },
   "custom/power": {
       "format" : " ⏻  ",
