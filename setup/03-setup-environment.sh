@@ -90,7 +90,9 @@ install_desktop() {
         hyprland hyprpolkitagent hyprlock mako uwsm \
         thunar tumbler waybar rofi-wayland awww \
         ghostty fish foot grim slurp wl-clipboard \
-        hypridle cliphist xdg-utils hyprsunset
+        hypridle cliphist xdg-utils hyprsunset \
+        xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
+        noto-fonts noto-fonts-emoji
 }
 
 stow_dotfiles() {

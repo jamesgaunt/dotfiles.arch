@@ -137,6 +137,7 @@ enable_services() {
     display_header "Enabling Services"
     systemctl enable NetworkManager
     systemctl enable sshd
+    systemctl enable systemd-timesyncd   # NTP clock sync (ships with systemd)
     systemctl enable nvidia-suspend.service nvidia-resume.service
 }
 
