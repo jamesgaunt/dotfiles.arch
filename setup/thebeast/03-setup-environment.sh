@@ -84,12 +84,14 @@ install_desktop() {
         hyprland hyprpolkitagent uwsm \
         thunar tumbler waybar rofi-wayland awww \
         ghostty fish foot
+}
 
-    stow -d "$HOME/dotfiles" -t "$HOME" hyprland
-    stow -d "$HOME/dotfiles" -t "$HOME" ghostty
-    stow -d "$HOME/dotfiles" -t "$HOME" fish
-    stow -d "$HOME/dotfiles" -t "$HOME" waybar
-    stow -d "$HOME/dotfiles" -t "$HOME" rofi
+stow_dotfiles() {
+    display_header "Stowing Dotfiles"
+    local pkgs=(git fish hyprland ghostty waybar rofi)
+    for pkg in "${pkgs[@]}"; do
+        stow -d "$HOME/dotfiles" -t "$HOME" "$pkg"
+    done
 }
 
 install_pipewire () {
@@ -165,19 +167,46 @@ install_docker () {
     sudo usermod -aG docker "$USER"
 }
 
+install_dotnet () {
+    display_header "Installing .NET SDK (Microsoft direct)"
+
+    command -v dotnet &>/dev/null && return 0   # skip if present
+    curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+    chmod +x /tmp/dotnet-install.sh
+    /tmp/dotnet-install.sh --channel LTS --install-dir "$HOME/.dotnet"
+    rm /tmp/dotnet-install.sh
+
+    "$HOME/.dotnet/dotnet" tool install --global aspire.cli
+}
+
+install_rider () {
+    display_header "Installing Rider"
+
+    sudo pacman -S --noconfirm --needed flatpak
+
+    flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    flatpak install --user -y flathub com.jetbrains.Rider
+}
+
 # Main
 
 require_home_dir
 fix_bootctl
+
 setup_pacman
 install_tools
+
 clone_dotfiles
+stow_dotfiles
+
+install_pipewire # install before desktop so pipeware-jack wins over jack2
 install_desktop
-install_pipewire
 install_yay
 install_steam
 install_libreoffice
 install_docker
+install_dotnet
+install_rider
 
 # Do Last
 install_snapper
