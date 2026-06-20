@@ -41,7 +41,7 @@ local menu        = "rofi -show drun"
 
 hl.on("hyprland.start", function()
     hl.exec_cmd("uwsm app -- awww-daemon")
-    hl.exec_cmd("/home/james/.config/hypr/wallpaper.sh")
+    hl.exec_cmd("/home/james/.config/hypr/scripts/wallpaper.sh")
 
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("uwsm app -- mako")
