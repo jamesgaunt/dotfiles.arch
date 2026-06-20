@@ -84,9 +84,10 @@ install_desktop() {
     display_header "Installing Desktop Environment"
 
     sudo pacman -S --needed --noconfirm \
-        hyprland hyprpolkitagent uwsm \
+        hyprland hyprpolkitagent hyprlock mako uwsm \
         thunar tumbler waybar rofi-wayland awww \
-        ghostty fish foot
+        ghostty fish foot grim slurp wl-copy wl-paste \
+        hypridle cliphist xdg-utils hyprsunset
 }
 
 stow_dotfiles() {
@@ -229,5 +230,5 @@ install_docker
 install_dotnet
 install_rider
 
-# Do Last
+# Do after all pacman work
 install_snapper

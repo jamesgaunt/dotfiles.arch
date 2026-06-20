@@ -12,6 +12,7 @@
     "cpu",
     "memory",
     "tray",
+    "custom/power"
   ],
   "hyprland/workspaces": {
     "disable-scroll": true,
@@ -53,6 +54,7 @@
   },
   "custom/power": {
       "format" : " ⏻  ",
-  		"on-click": "hyprshutdown"
+      "on-click": "~/.config/waybar/scripts/powermenu.sh",
+      "tooltip": false
     }
 }
