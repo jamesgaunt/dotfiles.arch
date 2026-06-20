@@ -88,7 +88,7 @@ install_desktop() {
 
 stow_dotfiles() {
     display_header "Stowing Dotfiles"
-    local pkgs=(git fish hyprland ghostty waybar rofi)
+    local pkgs=(git fish hyprland ghostty waybar rofi wallpapers)
     for pkg in "${pkgs[@]}"; do
         stow -d "$HOME/dotfiles" -t "$HOME" "$pkg"
     done
@@ -188,6 +188,12 @@ install_rider () {
     flatpak install --user -y flathub com.jetbrains.Rider
 }
 
+install_sddm() {
+    display_header "Installing SDDM"
+    sudo pacman -S --needed --noconfirm sddm
+    sudo systemctl enable sddm.service
+}
+
 # Main
 
 require_home_dir
@@ -201,6 +207,8 @@ stow_dotfiles
 
 install_pipewire # install before desktop so pipeware-jack wins over jack2
 install_desktop
+install_sddm
+
 install_yay
 install_steam
 install_libreoffice
