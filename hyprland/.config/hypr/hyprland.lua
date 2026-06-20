@@ -30,7 +30,7 @@ hl.window_rule({ match = { class = "jetbrains-toolbox" }, center = true })
 
 -- Set programs that you use
 local terminal    = "ghostty"
-local fileManager = "dolphin"
+local fileManager = "thunar"
 local menu        = "rofi -show drun"
 
 -------------------
@@ -41,7 +41,7 @@ local menu        = "rofi -show drun"
 
 hl.on("hyprland.start", function()
     hl.exec_cmd("uwsm app -- awww-daemon")
-    hl.exec_cmd("/home/james/.local/bin/wallpaper.sh")
+    hl.exec_cmd("/home/james/.config/hypr/wallpaper.sh")
 
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("uwsm app -- waybar")

@@ -1,0 +1,21 @@
+# General bash scripting notes
+
+#!/bin/bash
+
+# e: exit on fail, u: error on unset var ref, o pipefail: fail on any pipe fail stage
+set -euo pipefail
+
+# curl an sh from github
+curl -O https://raw.githubusercontent.com/you/repo/main/install.sh
+bash install.sh
+
+# serve a folder on a localhost http server
+python -m http.server 8000
+
+# curl and run a script in the folder (10.0.2.2 is QEMUs magic points back to host IP)
+curl -LO http://10.0.2.2:8000/install.sh
+
+# curl and run
+curl -LO http://10.0.2.2:8000/01-prepare-disk.sh && bash 01-prepare-disk.sh
+curl -LO http://10.0.2.2:8000/02-configure-system.sh && bash 02-configure-system.sh
+curl -LO http://10.0.2.2:8000/03-setup-environment.sh && bash 03-setup-environment.sh

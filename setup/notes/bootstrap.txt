@@ -131,15 +131,6 @@ yay -Sc                 # clean yay's cache (prompts you)
 yay -S google-chrome    # Always read PKGBUILD
 
 #================================================================================
-# Kitty config
-#================================================================================
-
-map ctrl+c        copy_to_clipboard
-map ctrl+v        paste_from_clipboard
-map ctrl+shift+c  send_text all \x03      # \x03 = the SIGINT control code
-map ctrl+shift+v  paste_from_clipboard
-
-#================================================================================
 # Git SSH Key
 #================================================================================
 
@@ -251,7 +242,7 @@ Catppuccin -> has configs for lots of common apps
 
 sudo pacman -S libreoffice-still -> stable version (or use -fresh)
 
-# setup file associations (because nothing is ever simple)
+# setup file associations for dolphin (because nothing is ever simple)
 sudo pacman -S archlinux-xdg-menu
 sudo ln -sf /etc/xdg/menus/arch-applications.menu /etc/xdg/menus/applications.menu
 rm -f ~/.cache/ksycoca6_* && kbuildsycoca6 --noincremental
