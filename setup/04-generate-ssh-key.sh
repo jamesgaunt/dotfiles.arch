@@ -1,4 +1,7 @@
-
+#!/bin/bash
+set -euo pipefail
+trap 'echo "FAILED at line $LINENO (exit $?)" >&2' ERR
+[[ $EUID -eq 0 ]] && { echo "Run as james, not root (uses sudo per-command)." >&2; exit 1; }
 
 generate_ssh_key() {
     display_header "Generating SSH Key"

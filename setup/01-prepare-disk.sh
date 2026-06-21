@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+trap 'echo "FAILED at line $LINENO (exit $?)" >&2' ERR
 [[ $EUID -eq 0 ]] || { echo "Run as root." >&2; exit 1; }
 
 # 01-prepare-disk.sh
