@@ -228,38 +228,6 @@ install_rider () {
 
     flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     flatpak install --user -y flathub com.jetbrains.Rider
-
-    enable_rider_wayland
-}
-
-# Force Rider's JBR onto the native Wayland toolkit instead of XWayland, which
-# fixes blurry text under fractional scaling. This user vmoptions file *expands*
-# the bundled defaults, so we only add the one line. The config dir is pinned to
-# the major.minor version and isn't created until first run, so derive it from
-# the installed flatpak version (e.g. 2026.1.2 -> Rider2026.1).
-enable_rider_wayland() {
-    display_header "Enabling native Wayland for Rider"
-    local line='-Dawt.toolkit.name=WLToolkit'
-    local base="$HOME/.var/app/com.jetbrains.Rider/config/JetBrains"
-
-    local dir
-    dir=$(ls -d "$base"/Rider*/ 2>/dev/null | head -1)
-    if [[ -z "$dir" ]]; then
-        local ver mm
-        ver=$(flatpak info com.jetbrains.Rider 2>/dev/null | awk -F': *' '/Version:/{print $2}')
-        mm=${ver%.*}   # 2026.1.2 -> 2026.1
-        [[ -n "$mm" ]] || { echo "Could not determine Rider version; skipping Wayland tweak." >&2; return 0; }
-        dir="$base/Rider$mm/"
-        mkdir -p "$dir"
-    fi
-
-    local file="${dir}rider64.vmoptions"
-    if [[ -f "$file" ]] && grep -qxF "$line" "$file"; then
-        echo "Wayland toolkit option already set in $file"
-        return 0
-    fi
-    printf '%s\n' "$line" >> "$file"
-    echo "Added '$line' to $file"
 }
 
 install_sddm() {

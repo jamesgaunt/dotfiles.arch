@@ -10,6 +10,8 @@
 
 # Rider → sign into JetBrains account → enable Settings Sync (restores keymaps/options/code styles)
 
+# Rider: Help => Edit Custom VM Options: -Dawt.toolkit.name=WLToolkit
+
 # Rider Settings → NuGet: turn off all 3 auto install/update options
 
 # Rider Settings → Tools → Terminal → "Shell path":
