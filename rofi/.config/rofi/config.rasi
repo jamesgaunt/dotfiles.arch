@@ -1,2 +1,8 @@
+configuration {
+    /* Launch apps via uwsm so they land in their own systemd app-*.scope
+       instead of accumulating under the compositor's unit. */
+    run-command: "uwsm app -- {cmd}";
+    run-shell-command: "uwsm app -- {terminal} -e {cmd}";
+}
 
 @theme "/usr/share/rofi/themes/gruvbox-dark.rasi"

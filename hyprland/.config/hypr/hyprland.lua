@@ -25,9 +25,11 @@ hl.monitor({ output = "HDMI-A-1", mode = "preferred", position = "2120x-1440", s
 ---------------------
 
 -- Set programs that you use
-local terminal    = "ghostty"
-local fileManager = "thunar"
-local menu        = "rofi -show drun"
+-- Launch via `uwsm app --` so each app gets its own systemd app-*.scope
+-- instead of piling up under the compositor's unit (matches AUTOSTART above).
+local terminal    = "uwsm app -- ghostty"
+local fileManager = "uwsm app -- thunar"
+local menu        = "uwsm app -- rofi -show drun"
 
 -------------------
 ---- AUTOSTART ----

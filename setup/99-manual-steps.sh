@@ -14,3 +14,6 @@
 
 # Rider Settings → Tools → Terminal → "Shell path":
 #   flatpak-spawn --host script -qc /usr/bin/fish /dev/null
+
+# Verify NVreg_PreserveVideoMemoryAllocations is live otherwise sudo mkinitcpio -P
+# cat /sys/module/nvidia/parameters/NVreg_PreserveVideoMemoryAllocations   # should print Y or 1

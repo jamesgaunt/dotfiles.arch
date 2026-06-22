@@ -158,6 +158,16 @@ configure_user() {
     echo '%wheel ALL=(ALL:ALL) ALL' > /etc/sudoers.d/10-wheel
     chmod 0440 /etc/sudoers.d/10-wheel
 
+    # Soften faillock so a transient input hiccup (e.g. dead keyboard for ~20s
+    # after an NVIDIA/Hyprland resume) can't trigger the default 10-min lockout
+    # (deny=3 / unlock_time=600). Idempotent.
+    grep -q '^deny = 10' /etc/security/faillock.conf || cat >> /etc/security/faillock.conf <<'EOF'
+
+# Softened: avoid lockout from a transient input hiccup
+deny = 10
+unlock_time = 60
+EOF
+
     # Create the user with wheel membership (only if not already present)
     if ! id -u james &>/dev/null; then
         useradd -m -G wheel -s /bin/bash james
