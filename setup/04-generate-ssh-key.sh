@@ -3,6 +3,24 @@ set -euo pipefail
 trap 'echo "FAILED at line $LINENO (exit $?)" >&2' ERR
 [[ $EUID -eq 0 ]] && { echo "Run as james, not root (uses sudo per-command)." >&2; exit 1; }
 
+display_header() {
+    local msg="$1"
+    local width bar
+    width=$(tput cols 2>/dev/null || echo 80)
+
+    # Build a bar of '#' exactly `width` wide
+    bar=$(printf '#%.0s' $(seq "$width"))
+
+    # Center the message: pad-left by (width - msglen) / 2
+    local msglen=${#msg}
+    local pad=$(( (width - msglen) / 2 ))
+    (( pad < 0 )) && pad=0
+
+    printf '%s\n' "$bar"
+    printf '%*s%s\n' "$pad" '' "$msg"
+    printf '%s\n' "$bar"
+}
+
 generate_ssh_key() {
     display_header "Generating SSH Key"
 

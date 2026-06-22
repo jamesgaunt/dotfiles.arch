@@ -37,8 +37,6 @@ local menu        = "rofi -show drun"
 
 hl.on("hyprland.start", function()
     hl.exec_cmd("uwsm app -- awww-daemon")
-    hl.exec_cmd("/home/james/.config/hypr/scripts/wallpaper.sh")
-
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("uwsm app -- mako")
     hl.exec_cmd("uwsm app -- hypridle")
@@ -46,6 +44,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("uwsm app -- waybar")
     hl.exec_cmd("uwsm app -- wl-paste --type text --watch cliphist store")
     hl.exec_cmd("uwsm app -- wl-paste --type image --watch cliphist store")
+    hl.exec_cmd("/home/james/.config/hypr/scripts/wallpaper.sh")
 end)
 
 -------------------------------
