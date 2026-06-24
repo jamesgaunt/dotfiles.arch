@@ -20,9 +20,21 @@ window#waybar {
 }
 
 #clock,
-#battery,
 #network,
 #cpu,
-#memory {
+#memory,
+#temperature,
+#custom-gpu,
+#wireplumber,
+#custom-power,
+#window {
     padding: 0 10px;
+}
+
+#temperature.critical {
+    color: #f38ba8;
+}
+
+#window {
+    font-style: italic;
 }
