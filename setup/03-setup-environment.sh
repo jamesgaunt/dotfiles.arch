@@ -183,7 +183,8 @@ install_libreoffice() {
 install_docker () {
     display_header "Installing Docker"
 
-    sudo pacman -S --noconfirm --needed docker docker-compose
+    # docker-buildx: required by `aspire deploy` to build container images
+    sudo pacman -S --noconfirm --needed docker docker-compose docker-buildx
     sudo systemctl enable --now docker.service
 
     # assign user to docker group (restart required)
@@ -219,15 +220,18 @@ install_dotnet () {
 
     "$HOME/.dotnet/dotnet" tool install --global aspire.cli
     "$HOME/.dotnet/dotnet" tool install --global dotnet-ef
+
+    # Azure CLI (AUR): for managing Azure resources from the .NET stack
+    yay -S --noconfirm --needed azure-cli
 }
 
 install_rider () {
     display_header "Installing Rider"
 
-    sudo pacman -S --noconfirm --needed flatpak
-
-    flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-    flatpak install --user -y flathub com.jetbrains.Rider
+    # AUR package (not Flatpak): the native build renders correctly under
+    # Wayland without custom VM flags, and runs on the host so it can see
+    # docker/dotnet directly (the Flatpak sandbox hid them from Aspire).
+    yay -S --noconfirm --needed rider
 }
 
 install_sddm() {
