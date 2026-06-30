@@ -93,7 +93,10 @@ update_fstab() {
     local uid gid opts
     uid=$(id -u)
     gid=$(id -g)
-    opts="_netdev,nofail,x-systemd.automount,credentials=$CREDENTIALS_FILE,uid=$uid,gid=$gid,file_mode=0664,dir_mode=0775,vers=3.1.1"
+    # mount-timeout caps how long an access blocks when the NAS is off (instead
+    # of the long default CIFS timeout); idle-timeout unmounts after inactivity
+    # so a stale handle to a powered-off NAS can't wedge file managers like Thunar.
+    opts="_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=5,x-systemd.idle-timeout=60,credentials=$CREDENTIALS_FILE,uid=$uid,gid=$gid,file_mode=0664,dir_mode=0775,vers=3.1.1"
 
     # Manage our entries inside a marked block so re-runs replace rather than
     # duplicate. Strip any previous block first.

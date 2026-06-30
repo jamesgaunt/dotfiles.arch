@@ -89,7 +89,7 @@ install_desktop() {
 
     sudo pacman -S --needed --noconfirm \
         hyprland hyprpolkitagent hyprlock mako uwsm \
-        thunar tumbler waybar rofi-wayland awww \
+        thunar tumbler gvfs waybar rofi-wayland awww \
         ghostty fish foot grim slurp wl-clipboard \
         hypridle cliphist xdg-utils hyprsunset \
         xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \

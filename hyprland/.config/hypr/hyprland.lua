@@ -162,6 +162,43 @@ hl.animation({ leaf = "workspacesOut", enabled = true, speed = 1.94, bezier = "a
 hl.animation({ leaf = "zoomFactor", enabled = true, speed = 7, bezier = "quick" })
 
 -- Ref https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
+
+-- Workspace layout: the 3 bottom monitors are "paged" together in groups, while
+-- the top widescreen has its own independent set (so it can stay on e.g. email
+-- while the bottom monitors page around).
+--
+--   Bottom (SUPER+1..5): each group owns one workspace per bottom monitor, so a
+--   single keypress pages all three at once (scripts/workspace-group.sh).
+--     group 1 = ws {1,2,3}, group 2 = ws {4,5,6}, ... up to group 5 = {13,14,15}
+--   Top (SUPER+6,7,8,9,0): workspaces 16..20, all pinned to the top monitor.
+--
+-- Keep bottomMonitors / topMonitor in sync with the keybinds and the scripts
+-- (workspace-group.sh, move-to-group.sh).
+local bottomMonitors = { "DP-1", "DP-2", "DP-3" }
+local topMonitor     = "HDMI-A-1"
+local numGroups      = 5 -- bottom groups, keys 1..5
+local topWorkspaces  = 5 -- independent top workspaces, keys 6,7,8,9,0
+local topBase        = numGroups * #bottomMonitors -- top workspaces start at 16
+
+for group = 1, numGroups do
+    for i, output in ipairs(bottomMonitors) do
+        local ws = (group - 1) * #bottomMonitors + i
+        hl.workspace_rule({
+            workspace = tostring(ws),
+            monitor   = output,
+            default   = group == 1, -- each bottom monitor boots on its group-1 workspace
+        })
+    end
+end
+
+for j = 1, topWorkspaces do
+    hl.workspace_rule({
+        workspace = tostring(topBase + j),
+        monitor   = topMonitor,
+        default    = j == 1, -- top monitor boots on workspace 16
+    })
+end
+
 -- "Smart gaps" / "No gaps when only"
 -- uncomment all if you wish to use that.
 -- hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })
@@ -295,12 +332,24 @@ hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.move({ direction = "r" }))
 hl.bind(mainMod .. " + SHIFT + up", hl.dsp.window.move({ direction = "u" }))
 hl.bind(mainMod .. " + SHIFT + down", hl.dsp.window.move({ direction = "d" }))
 
--- Switch workspaces with mainMod + [0-9]
--- Move active window to a workspace with mainMod + SHIFT + [0-9]
-for i = 1, 10 do
-    local key = i % 10 -- 10 maps to key 0
-    hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
-    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+-- Bottom monitors (DP-1/2/3): page all three with mainMod + [1-5];
+-- move the active window to its monitor's slot in a group with mainMod + SHIFT + [1-5].
+for group = 1, numGroups do
+    hl.bind(mainMod .. " + " .. group,
+        hl.dsp.exec_cmd("~/.config/hypr/scripts/workspace-group.sh " .. group))
+    hl.bind(mainMod .. " + SHIFT + " .. group,
+        hl.dsp.exec_cmd("~/.config/hypr/scripts/move-to-group.sh " .. group))
+end
+
+-- Top widescreen (HDMI-A-1): switch it alone with mainMod + [6,7,8,9,0] without
+-- moving focus away from where you're working below; move the active window up
+-- to the top monitor with mainMod + SHIFT + [6,7,8,9,0].
+for j = 1, topWorkspaces do
+    local key = (5 + j) % 10 -- 6,7,8,9,0
+    local ws  = topBase + j  -- 16..20
+    hl.bind(mainMod .. " + " .. key,
+        hl.dsp.exec_cmd("~/.config/hypr/scripts/switch-keep-focus.sh " .. ws))
+    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = ws, silent = true }))
 end
 
 -- Example special workspace (scratchpad)
@@ -363,4 +412,16 @@ hl.window_rule({
 
     move  = "20 monitor_h-120",
     float = true,
+})
+
+-- Thunderbird's "Select Calendar" invite-import dialog is a size-to-content
+-- dialog; tiling collapses its calendar list to zero height so it renders
+-- empty. Float it at a usable size so the calendars are visible.
+hl.window_rule({
+    name   = "float-thunderbird-select-calendar",
+    match  = { class = "org.mozilla.Thunderbird", title = "^Select Calendar$" },
+
+    float  = true,
+    size   = "650 500",
+    center = true,
 })
